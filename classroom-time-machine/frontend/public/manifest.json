@@ -1,0 +1,8 @@
+{
+  "short_name": "CTM",
+  "name": "Classroom Time Machine",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f2937"
+}
