@@ -1,0 +1,17 @@
+﻿
+> clinic@0.0.0 lint
+> eslint .
+
+
+C:\Users\Dell\.gemini\antigravity\scratch\clinic\src\context\AuthContext.jsx
+  50:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\Dell\.gemini\antigravity\scratch\clinic\src\views\Booking.jsx
+  87:8  warning  React Hook useEffect has a missing dependency: 'transcript'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\Dell\.gemini\antigravity\scratch\clinic\src\views\Emergency.jsx
+   8:7   error  'userSteps' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  18:12  error  'clinics' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+
+Γ£û 4 problems (3 errors, 1 warning)
+

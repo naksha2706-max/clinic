@@ -20,14 +20,28 @@ export default function Analysis() {
         const { symptoms, user } = location.state || {}; // Safety check
 
         const runAnalysis = async () => {
-            // Visual step progress (keep it moving while loading)
+            // Visual step progress
             const interval = setInterval(() => {
                 setStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
             }, 1000);
 
             try {
-                // Real API Call
-                const result = await analyzeSymptoms(symptoms, user);
+                // 1. Fetch all clinics first
+                const { getClinics } = await import('../lib/api');
+                const allClinics = await getClinics();
+
+                // Map to the format the AI prompt expects, but include ID and Queue for tracking
+                const doctorList = allClinics.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    specialist: c.specialty || 'general physician',
+                    distance_km: (Math.random() * 5 + 0.5).toFixed(1), // Random distance 0.5 - 5.5km
+                    current_queue: c.current_queue || 0,
+                    available: c.is_available ?? true
+                }));
+
+                // 2. Real AI Call with doctors
+                const result = await analyzeSymptoms(symptoms, doctorList);
 
                 if (isMounted) {
                     clearInterval(interval);
@@ -41,7 +55,6 @@ export default function Analysis() {
                 }
             } catch (error) {
                 console.error("Analysis failed", error);
-                // Navigate anyway (the service handles fallback generally, but just in case)
                 if (isMounted) navigate('/results', { state: location.state });
             }
         };

@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Unrelated projects/directories
+DCN code/
+JAVA  code/
+New folder/
+classroom-time-machine/
+

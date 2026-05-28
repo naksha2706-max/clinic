@@ -7,6 +7,8 @@ create table public.clinics (
   is_emergency_capable boolean default false,
   latitude double precision,
   longitude double precision,
+  is_available boolean default true,
+  current_queue integer default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -73,4 +75,26 @@ ON public.clinics FOR SELECT
 USING (true);
 
 -- Enable Row Level Security (RLS)
-alter table public.clinics enable row level security;
+-- 4. Emergency Alerts Table
+CREATE TABLE public.emergency_alerts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id), -- Optional for guests
+    location_lat DOUBLE PRECISION,
+    location_lng DOUBLE PRECISION,
+    status TEXT DEFAULT 'triggered', -- triggered, responding, resolved
+    channels_notified JSONB DEFAULT '[]', -- ['SMS', 'Email', 'Clinic']
+    patient_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.emergency_alerts ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Anyone can insert (to allow guest emergencies)
+CREATE POLICY "Anyone can report an emergency"
+ON public.emergency_alerts FOR INSERT
+WITH CHECK (true);
+
+-- Policy: Only authenticated users can see their own emergencies
+CREATE POLICY "Users can view own emergencies"
+ON public.emergency_alerts FOR SELECT
+USING (auth.uid() = user_id OR user_id IS NULL);

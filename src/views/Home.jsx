@@ -74,26 +74,28 @@ export default function Home() {
                 <p className={styles.subtitle}>Describe your symptoms to find the right care.</p>
             </header>
 
-            <main className={styles.inputSection}>
-                <MicButton
-                    isListening={isListening}
-                    onClick={handleMicClick}
-                    size={40}
-                />
-
-                <div className={styles.orDivider}>OR</div>
-
-                <div className={styles.textInputArea}>
-                    <Input
-                        multiline
-                        placeholder="Type your symptoms here (e.g., 'fever for 3 days')..."
-                        value={symptomText}
-                        onChange={(e) => setSymptomText(e.target.value)}
+            <main className={`${styles.inputSection} catchy-card`}>
+                <div style={{ padding: 'var(--space-md)' }}>
+                    <MicButton
+                        isListening={isListening}
+                        onClick={handleMicClick}
+                        size={40}
                     />
-                    <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                        <Button onClick={handleAnalyze} disabled={!symptomText.trim()}>
-                            Find Help <ArrowRight size={18} />
-                        </Button>
+
+                    <div className={styles.orDivider}>OR</div>
+
+                    <div className={styles.textInputArea}>
+                        <Input
+                            multiline
+                            placeholder="Type your symptoms here (e.g., 'fever for 3 days')..."
+                            value={symptomText}
+                            onChange={(e) => setSymptomText(e.target.value)}
+                        />
+                        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button onClick={handleAnalyze} disabled={!symptomText.trim()} variant="primary">
+                                Find Help <ArrowRight size={18} />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -102,11 +104,11 @@ export default function Home() {
                 <Button
                     variant="emergency"
                     fullWidth
-                    className={styles.emergencyBtn}
+                    className={`pulse-glow ${styles.emergencyBtn}`}
                     onClick={() => navigate('/emergency')}
                 >
                     <AlertTriangle size={20} />
-                    Emergency Alert
+                    🚨 EMERGENCY ALERT 🚨
                 </Button>
             </footer>
         </div>

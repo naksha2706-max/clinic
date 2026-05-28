@@ -1,20 +1,28 @@
 :root {
-  /* Brand Colors */
-  --color-primary: #0ea5e9; /* Sky 500 */
-  --color-primary-dark: #0284c7; /* Sky 600 */
-  --color-secondary: #14b8a6; /* Teal 500 */
-  
+  /* Brand Colors - More Vibrant and Catchy */
+  --color-primary: #6366f1;
+  /* Indigo 500 - Dynamic Indigo */
+  --color-primary-dark: #4f46e5;
+  /* Indigo 600 */
+  --color-secondary: #f43f5e;
+  /* Rose 500 - Energetic Pink */
+
   /* Emergency Colors */
-  --color-emergency: #ef4444; /* Red 500 */
-  --color-emergency-dark: #dc2626; /* Red 600 */
-  --color-emergency-light: #fee2e2; /* Red 100 */
+  --color-emergency: #f43f5e;
+  /* Matching Rose for consistency while keeping emergency feel */
+  --color-emergency-dark: #e11d48;
+  --color-emergency-light: #fff1f2;
 
   /* Neutral Colors */
-  --color-bg: #f8fafc; /* Slate 50 */
+  --color-bg: #f8fafc;
+  /* Slate 50 */
   --color-surface: #ffffff;
-  --color-text-main: #0f172a; /* Slate 900 */
-  --color-text-muted: #64748b; /* Slate 500 */
-  --color-border: #e2e8f0; /* Slate 200 */
+  --color-text-main: #0f172a;
+  /* Slate 900 */
+  --color-text-muted: #64748b;
+  /* Slate 500 */
+  --color-border: #e2e8f0;
+  /* Slate 200 */
 
   /* Spacing */
   --space-xs: 0.25rem;

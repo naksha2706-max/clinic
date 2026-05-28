@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createBooking, saveInteractionLog } from '../lib/api';
+import { createBooking, saveInteractionLog, incrementClinicQueue } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Phone, Check, Activity, Clock } from 'lucide-react';
 import Button from '../components/Button';
@@ -60,9 +60,12 @@ export default function Booking() {
                         await saveInteractionLog({
                             booking_id: newBooking.id,
                             transcript: JSON.stringify(transcript),
-                            summary: state?.analysisResult?.assessment?.summary || 'Booking via AI Simulation',
-                            severity_score: 1 // Default/Placeholder
+                            summary: state?.analysisResult?.probable_disease || 'Booking via AI Simulation',
+                            severity_score: state?.analysisResult?.risk_score || 1
                         });
+
+                        // Increment clinic queue
+                        await incrementClinicQueue(doctor.id);
 
                         setStatus('confirmed');
                     } catch (err) {
@@ -121,6 +124,8 @@ export default function Booking() {
                         appointment_time: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // +1 hour
                         status: 'confirmed'
                     });
+                    // Increment clinic queue
+                    await incrementClinicQueue(doctor.id);
                 } catch (err) {
                     console.error("Booking creation failed:", err);
                 }
@@ -153,10 +158,56 @@ export default function Booking() {
 
     if (!doctor) return <div>Error: No doctor selected</div>;
 
+    const [browserCallMode, setBrowserCallMode] = useState(false);
+
+    const startBrowserVoiceCall = async () => {
+        setBrowserCallMode(true);
+        setStatus('negotiating');
+
+        try {
+            const { startBrowserCall } = await import('../services/vapi');
+            const vapi = await startBrowserCall({
+                name: state?.user?.name,
+                symptoms: state?.symptoms
+            });
+
+            vapi.on('message', (message) => {
+                if (message.type === 'transcript' && message.transcriptType === 'final') {
+                    setTranscript(prev => [...prev, {
+                        speaker: message.role === 'assistant' ? 'Receptionist' : 'Agent',
+                        text: message.transcript
+                    }]);
+                }
+            });
+
+            vapi.on('call-end', async () => {
+                // Auto-book on call success
+                try {
+                    await createBooking({
+                        clinic_id: doctor.id,
+                        user_id: user?.id,
+                        patient_name: state?.user?.name || 'Guest',
+                        patient_contact: 'Browser Call',
+                        patient_email: state?.user?.email,
+                        status: 'confirmed',
+                        appointment_time: new Date(Date.now() + 1000 * 60 * 30).toISOString()
+                    });
+                    // Increment clinic queue
+                    await incrementClinicQueue(doctor.id);
+                    setStatus('confirmed');
+                } catch (err) {
+                    console.error("Booking failed", err);
+                }
+            });
+
+        } catch (error) {
+            console.error("Browser call failed", error);
+            setStatus('calling');
+        }
+    };
+
     const startSimulation = () => {
-        // Just trigger the useEffect logic by state reset or similar
-        // For MVP, we'll just reload the simulation logic
-        setStatus('negotiating'); // This will trigger the simulation useEffect
+        setStatus('negotiating');
     };
 
     return (
@@ -167,6 +218,9 @@ export default function Booking() {
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', flexDirection: 'column' }}>
                         <Button onClick={startSimulation}>
                             Run AI Simulation (Chat)
+                        </Button>
+                        <Button variant="secondary" onClick={startBrowserVoiceCall}>
+                            <Activity size={18} /> Start AI Voice Call (Browser)
                         </Button>
                         <div className={styles.realCallBox}>
                             <Input
@@ -193,7 +247,7 @@ export default function Booking() {
                         {realCallMode && <p>{callStatus}</p>}
                     </div>
 
-                    <div className={styles.transcriptBox} ref={scrollRef}>
+                    <div className={`${styles.transcriptBox} glass`} ref={scrollRef}>
                         {transcript.length === 0 && (
                             <div className={styles.connecting}>Connecting to {doctor.clinic}...</div>
                         )}
@@ -227,7 +281,7 @@ export default function Booking() {
                         <h2 className={styles.status}>Booked!</h2>
                     </div>
 
-                    <div className={styles.queueCard}>
+                    <div className={`${styles.queueCard} glass`}>
                         <div className={styles.queueHeader}>Live Queue Status</div>
                         <div className={styles.queueBody}>
                             <div className={styles.queueNumber}>#{queuePosition}</div>
@@ -238,7 +292,7 @@ export default function Booking() {
                         </div>
                     </div>
 
-                    <div className={styles.ticket}>
+                    <div className={`${styles.ticket} glass`}>
                         <div className={styles.ticketRow}>
                             <span className={styles.label}>Doctor</span>
                             <span className={styles.value}>{doctor.name}</span>

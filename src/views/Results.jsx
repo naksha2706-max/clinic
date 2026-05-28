@@ -9,65 +9,62 @@ export default function Results() {
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    // Use real data if available, otherwise fallback (or show empty)
-    const analysis = state?.analysisResult?.assessment;
+    // AI Response Data
+    const analysis = state?.analysisResult;
+    const disease = analysis?.probable_disease;
+    const severity = analysis?.severity;
+    const riskScore = analysis?.risk_score;
+    const action = analysis?.recommended_action;
+
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchClinics = async () => {
-            try {
-                const { getClinics } = await import('../lib/api');
-                const allClinics = await getClinics();
+        if (!analysis) {
+            setLoading(false);
+            return;
+        }
 
-                const recommendedSpecialties = analysis?.recommended_specialties || [];
+        // Map AI-recommended doctors back to the full doctor object the UI expects
+        const recommendedDoctors = (analysis.nearby_doctors || []).map((doc, index) => {
+            const queueInMins = (doc.current_queue || 0) * 10 + 5; // 10 min per patient + 5 min base
+            return {
+                id: doc.id || index,
+                name: doc.name,
+                specialist: doc.specialist,
+                clinic: "Recommendation",
+                wait: `${queueInMins} min`,
+                price: "$40-$60",
+                distance: `${doc.distance_km} km`,
+                insurance: true,
+                isAvailable: doc.available ?? true
+            };
+        });
 
-                // Filter clinics based on recommended specialties if available
-                let filteredClinics = allClinics;
-                if (recommendedSpecialties.length > 0) {
-                    filteredClinics = allClinics.filter(clinic =>
-                        recommendedSpecialties.some(spec =>
-                            clinic.specialty?.toLowerCase().includes(spec.toLowerCase()) ||
-                            spec.toLowerCase().includes(clinic.specialty?.toLowerCase())
-                        )
-                    );
-                }
-
-                // If no matches found after filtering, show all but maybe a "general" subset or just all
-                if (filteredClinics.length === 0) filteredClinics = allClinics;
-
-                // Transform Supabase data to match UI component
-                const mappedDoctors = filteredClinics.map(clinic => ({
-                    id: clinic.id,
-                    name: `Dr. Available (${clinic.specialty || 'General'})`,
-                    specialty: clinic.specialty || 'General Practice',
-                    clinic: clinic.name,
-                    wait: "10-20 min",
-                    price: "$50",
-                    distance: "1.2 miles",
-                    insurance: true,
-                    address: clinic.address
-                }));
-                setDoctors(mappedDoctors);
-            } catch (error) {
-                console.error("Failed to fetch clinics:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchClinics();
+        setDoctors(recommendedDoctors);
+        setLoading(false);
     }, [analysis]);
+
+    if (loading) {
+        return (
+            <div className={`container fade-in ${styles.container}`}>
+                <div className={styles.loadingState}>
+                    <div className={styles.spinner}></div>
+                    <p>Finding the best care for you...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`container fade-in ${styles.container}`}>
             <div className={styles.header}>
-                <div className={styles.analysisSummary}>
-                    <div className={styles.summaryTitle}>AI Assessment</div>
+                <div className={`${styles.analysisSummary} glass`}>
+                    <div className={styles.summaryTitle}>AI Assessment: {disease || 'Analyzing...'}</div>
                     <div className={styles.summaryText}>
-                        Severity: <strong>{analysis?.severity || 'Assessing...'}</strong> • Urgency: <strong>{analysis?.urgency || 'Review'}</strong>
-                    </div>
-                    <div style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: '#475569' }}>
-                        {analysis?.summary || `Based on: "${state?.symptoms || 'General Checkup'}"`}
+                        Severity: <strong style={{ textTransform: 'capitalize' }}>{severity || 'Unknown'}</strong> •
+                        Risk Score: <strong>{riskScore}/10</strong> •
+                        Action: <strong style={{ textTransform: 'capitalize' }}>{action || 'Consult'}</strong>
                     </div>
                 </div>
 
@@ -75,37 +72,46 @@ export default function Results() {
             </div>
 
             <div className={styles.list}>
-                {doctors.map((doc) => (
-                    <Card key={doc.id} className={styles.doctorCard}>
-                        <div className={styles.doctorHeader}>
-                            <div>
-                                <div className={styles.name}>{doc.name}</div>
-                                <div className={styles.specialty}>{doc.specialty} • {doc.clinic}</div>
+                {doctors.length === 0 ? (
+                    <div className={styles.noResults}>No matching specialists found in your area.</div>
+                ) : (
+                    doctors.map((doc) => (
+                        <Card key={doc.id} className={`${styles.doctorCard} glass`}>
+                            <div className={styles.doctorHeader}>
+                                <div>
+                                    <div className={styles.name}>{doc.name}</div>
+                                    <div className={styles.specialty}>{doc.specialist} • {doc.clinic}</div>
+                                </div>
+                                {!doc.isAvailable && (
+                                    <span className={`${styles.tag} ${styles.busy}`}>
+                                        Clinically Busy
+                                    </span>
+                                )}
+                                {doc.insurance && doc.isAvailable && (
+                                    <span className={`${styles.tag} ${styles.insuranceMatch}`}>
+                                        Insurance Match
+                                    </span>
+                                )}
                             </div>
-                            {doc.insurance && (
-                                <span className={`${styles.tag} ${styles.insuranceMatch}`}>
-                                    Insurance Match
+
+                            <div className={styles.meta}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={14} /> Wait: {doc.wait}
                                 </span>
-                            )}
-                        </div>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <MapPin size={14} /> {doc.distance}
+                                </span>
+                            </div>
 
-                        <div className={styles.meta}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={14} /> Wait: {doc.wait}
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <MapPin size={14} /> {doc.distance}
-                            </span>
-                        </div>
-
-                        <div className={styles.actionRow}>
-                            <span className={styles.price}>Consultation: {doc.price}</span>
-                            <Button size="sm" onClick={() => navigate('/booking', { state: { doctor: doc, user: state?.user, symptoms: state?.symptoms } })}>
-                                Book Now
-                            </Button>
-                        </div>
-                    </Card>
-                ))}
+                            <div className={styles.actionRow}>
+                                <span className={styles.price}>Consultation: {doc.price}</span>
+                                <Button size="sm" onClick={() => navigate('/booking', { state: { doctor: doc, user: state?.user, symptoms: state?.symptoms } })}>
+                                    Book Now
+                                </Button>
+                            </div>
+                        </Card>
+                    ))
+                )}
             </div>
         </div>
     );

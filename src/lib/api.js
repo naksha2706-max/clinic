@@ -145,3 +145,35 @@ export const getInteractionLog = async (bookingId) => {
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is code for no rows found
     return data;
 };
+
+/**
+ * Log a new emergency alert.
+ * @param {Object} alertData - Latitude, longitude, name, etc.
+ * @returns {Promise<Object>} The created alert
+ */
+export const triggerEmergency = async (alertData) => {
+    const { data, error } = await supabase
+        .from('emergency_alerts')
+        .insert([alertData])
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+/**
+ * Increments the clinic's current queue count.
+ * @param {string} clinicId
+ */
+export const incrementClinicQueue = async (clinicId) => {
+    const { data: clinic } = await supabase.from('clinics').select('current_queue').eq('id', clinicId).single();
+    const newQueue = (clinic?.current_queue || 0) + 1;
+
+    const { error } = await supabase
+        .from('clinics')
+        .update({ current_queue: newQueue })
+        .eq('id', clinicId);
+
+    if (error) throw error;
+};

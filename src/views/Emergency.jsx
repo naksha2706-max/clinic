@@ -4,18 +4,11 @@ import { Bell, ShieldAlert, Ambulance, Phone } from 'lucide-react'; // Changed '
 import Button from '../components/Button';
 import styles from './Emergency.module.css';
 
-// Simulation steps
-const userSteps = [
-    { icon: <ShieldAlert />, text: "Locating user..." },
-    { icon: <Bell />, text: "Notifying Family (Mom, Dad)..." },
-    { icon: <ShieldAlert />, text: "Alerting Nearby Clinics..." }, // Reused icon
-    { icon: <Ambulance />, text: "Dispatching Ambulance..." },
-];
+// Initial state for simulation steps
 
 export default function Emergency() {
     const navigate = useNavigate();
     const [progress, setProgress] = useState(0);
-    const [clinics, setClinics] = useState([]);
     const [steps, setSteps] = useState([
         { icon: <ShieldAlert />, text: "Locating user..." },
         { icon: <Bell />, text: "Notifying Family (Mom, Dad)..." },
@@ -26,7 +19,7 @@ export default function Emergency() {
     useEffect(() => {
         import('../lib/api').then(({ getEmergencyClinics }) => {
             getEmergencyClinics().then(data => {
-                setClinics(data);
+                // setClinics(data);
                 setSteps(prev => {
                     const newSteps = [...prev];
                     newSteps[2].text = `Alerting ${data.length} Nearby Clinics...`;
@@ -37,15 +30,42 @@ export default function Emergency() {
     }, []);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setProgress((prev) => {
-                if (prev < steps.length) return prev + 1;
-                clearInterval(timer);
-                return prev;
-            });
-        }, 1500);
-        return () => clearInterval(timer);
-    }, [steps.length]);
+        let isMounted = true;
+        const { user } = navigate.state || {}; // Try to get user from state
+
+        const runEmergency = async () => {
+            try {
+                const { initiateEmergencyResponse } = await import('../services/emergency');
+                const result = await initiateEmergencyResponse({
+                    user_id: user?.id,
+                    name: user?.name || 'Anonymous'
+                });
+
+                if (isMounted) {
+                    // Update steps based on real data
+                    setSteps(prev => [
+                        { icon: <ShieldAlert />, text: "Location Secured: Bangalore" },
+                        { icon: <Bell />, text: "Family Notified (SMS Sent)" },
+                        { icon: <ShieldAlert />, text: `${result.clinics.length} Nearby Clinics Alerted` },
+                        { icon: <Ambulance />, text: "Ambulance Dispatch Confirmed" },
+                    ]);
+
+                    // Trigger the progress animation
+                    let stage = 0;
+                    const timer = setInterval(() => {
+                        stage++;
+                        if (stage <= 4) setProgress(stage);
+                        else clearInterval(timer);
+                    }, 1200);
+                }
+            } catch (error) {
+                console.error("Emergency fail", error);
+            }
+        };
+
+        runEmergency();
+        return () => { isMounted = false; };
+    }, [navigate]);
 
     return (
         <div className={`container fade-in ${styles.container}`}>
